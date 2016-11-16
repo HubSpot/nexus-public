@@ -16,6 +16,7 @@ import java.util.concurrent.RejectedExecutionException;
 
 import javax.inject.Inject;
 
+import org.restlet.data.Form;
 import org.sonatype.nexus.proxy.NoSuchRepositoryException;
 import org.sonatype.nexus.proxy.repository.GroupRepository;
 import org.sonatype.nexus.proxy.repository.Repository;
@@ -139,7 +140,14 @@ public abstract class AbstractRestorePlexusResource
         }
       }
 
-      getNexusScheduler().submit("Internal", task);
+      Form form = request.getResourceRef().getQueryAsForm();
+      boolean synchronous = Boolean.parseBoolean(form.getFirstValue("synchronous", "false"));
+
+      if (synchronous) {
+        task.call();
+      } else {
+        getNexusScheduler().submit("Internal", task);
+      }
 
       throw new ResourceException(Status.SUCCESS_NO_CONTENT);
     }
@@ -148,6 +156,9 @@ public abstract class AbstractRestorePlexusResource
     }
     catch (NoSuchRepositoryException e) {
       throw new ResourceException(Status.CLIENT_ERROR_NOT_FOUND, e.getMessage());
+    }
+    catch (Exception e) {
+      throw new ResourceException(Status.SERVER_ERROR_INTERNAL, e.getMessage());
     }
   }
 
