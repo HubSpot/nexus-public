@@ -144,21 +144,23 @@ public abstract class AbstractRestorePlexusResource
       boolean synchronous = Boolean.parseBoolean(form.getFirstValue("synchronous", "false"));
 
       if (synchronous) {
-        task.call();
+        try {
+          task.call();
+        }
+        catch (Exception e) {
+          throw new ResourceException(Status.SERVER_ERROR_INTERNAL, e.getMessage());
+        }
+        throw new ResourceException(Status.SUCCESS_NO_CONTENT);
       } else {
         getNexusScheduler().submit("Internal", task);
+        throw new ResourceException(Status.SUCCESS_ACCEPTED);
       }
-
-      throw new ResourceException(Status.SUCCESS_NO_CONTENT);
     }
     catch (RejectedExecutionException e) {
       throw new ResourceException(Status.CLIENT_ERROR_CONFLICT, e.getMessage());
     }
     catch (NoSuchRepositoryException e) {
       throw new ResourceException(Status.CLIENT_ERROR_NOT_FOUND, e.getMessage());
-    }
-    catch (Exception e) {
-      throw new ResourceException(Status.SERVER_ERROR_INTERNAL, e.getMessage());
     }
   }
 
